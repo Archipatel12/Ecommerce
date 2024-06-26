@@ -11,7 +11,12 @@ const fs = require('fs');
 app.use(express.json());
 
 // CORS configuration
-app.use(cors());
+app.use(cors(
+  {
+    origin : ["https://e-coomerce.vercel.app"],
+    methods : ["POST","GET"],
+    credentials : true
+));
 app.options('*', cors());
 
 // MongoDB connection URI
