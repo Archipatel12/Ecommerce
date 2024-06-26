@@ -13,7 +13,7 @@ app.use(express.json());
 // CORS configuration
 app.use(cors(
   {
-    origin : ["https://e-coomerce.vercel.app"],
+    origin : ["https://e-coomerce-123.vercel.app"],
     methods : ["POST","GET"],
     credentials : true
 ));
