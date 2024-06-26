@@ -1,41 +1,30 @@
-const port = 4000;
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
-const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const fs = require('fs');
 
 app.use(express.json());
 
-// CORS configuration
-app.use(cors(
-  {
-    origin : ["https://e-coomerce-123.vercel.app"],
-    methods : ["POST","GET"],
-    credentials : true
-));
-app.options('*', cors());
-
-// MongoDB connection URI
-const mongoURI = "mongodb+srv://archipatel9954:Archi%401264@cluster0.dvcdbvf.mongodb.net/E-commrece?retryWrites=true&w=majority";
+// MongoDB connection URI (should be stored in Vercel environment variables)
+const mongoURI = process.env.MONGODB_URI; // Update to use environment variable
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(() => {
-    console.log('MongoDB connected...');
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  });
+.then(() => {
+  console.log('MongoDB connected...');
+})
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1);
+});
 
-// Ensure upload directory exists
+// Ensure upload directory exists (not necessary on Vercel)
 const uploadDir = './upload/images';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -51,13 +40,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Serve static files (images) - Vercel requires different setup
 app.use('/images', express.static(path.join(__dirname, 'upload/images')));
 
 // Create image upload endpoint
-app.post("/upload", upload.single('product'), (req, res) => {
+app.post("/api/upload", upload.single('product'), (req, res) => {
   res.json({
     success: 1,
-    imageurl: `http://localhost:${port}/images/${req.file.filename}`
+    imageurl: `/images/${req.file.filename}` // Adjusted path for Vercel deployment
   });
 });
 
@@ -100,7 +90,7 @@ const productSchema = new mongoose.Schema({
 const Product = mongoose.model("Product", productSchema);
 
 // Add product
-app.post('/addproduct', async (req, res) => {
+app.post('/api/addproduct', async (req, res) => {
   try {
     let products = await Product.find({});
     let id = products.length > 0 ? products[products.length - 1].id + 1 : 1;
@@ -126,7 +116,7 @@ app.post('/addproduct', async (req, res) => {
 });
 
 // Delete product
-app.post('/removeproduct', async (req, res) => {
+app.post('/api/removeproduct', async (req, res) => {
   try {
     await Product.findOneAndDelete({ id: req.body.id });
     res.json({
@@ -140,7 +130,7 @@ app.post('/removeproduct', async (req, res) => {
 });
 
 // Fetch all products (GET request)
-app.get('/fetchallproduct', async (req, res) => {
+app.get('/api/fetchallproduct', async (req, res) => {
   try {
     let products = await Product.find({});
     res.json(products);
@@ -174,7 +164,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Creating endpoint for register user
-app.post('/signup', async (req, res) => {
+app.post('/api/signup', async (req, res) => {
   try {
     let check = await User.findOne({ email: req.body.email });
     if (check) {
@@ -212,7 +202,7 @@ app.post('/signup', async (req, res) => {
 });
 
 // Creating endpoint for user login
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     let user = await User.findOne({ email: req.body.email });
     if (user) {
@@ -241,7 +231,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Endpoint for new collection
-app.get('/newcollection', async (req, res) => {
+app.get('/api/newcollection', async (req, res) => {
   try {
     let products = await Product.find({});
     let newcollection = products.slice(-8);
@@ -252,19 +242,19 @@ app.get('/newcollection', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch new collection' });
   }
 });
-// endpoint for popular in women
-app.get('/popularinwomen', async (req,res) => {
-  try{
-    let products = await Product.find({category:"women"});
-    let popularinwomen = products.slice(0,4);
+
+// Endpoint for popular in women
+app.get('/api/popularinwomen', async (req, res) => {
+  try {
+    let products = await Product.find({ category: "women" });
+    let popularinwomen = products.slice(0, 4);
     console.log("popular in women fetched");
     res.json(popularinwomen);
   } catch (error) {
-    console.log("error");
+    console.error('Error fetching popular in women:', error);
+    res.status(500).json({ error: 'Failed to fetch popular in women' });
   }
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+module.exports = app;
+
